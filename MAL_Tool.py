@@ -18,12 +18,39 @@ from datetime import datetime
 # ============================================================================
 
 def required_return(present_value, future_value, years, contributions, contribution_growth):
-    """Calculate the required return to meet the goal"""
-    if contribution_growth == 0:
-        FV_annuity = contributions * years
-    else:
-        FV_annuity = contributions * ((1 + contribution_growth) ** years) / contribution_growth
-    return ((future_value - FV_annuity) / present_value) ** (1/years) - 1
+    """Calculate the required return to meet the goal using numerical solver"""
+    from scipy.optimize import fsolve
+    
+    def equation(r):
+        if abs(r - contribution_growth) < 0.0001:
+            # When r ≈ g, use limiting formula
+            FV_contributions = contributions * years * (1 + r) ** (years - 1)
+        else:
+            # Standard formula
+            FV_contributions = contributions * (((1 + r) ** years - (1 + contribution_growth) ** years) / (r - contribution_growth))
+        
+        FV_present = present_value * (1 + r) ** years
+        total_FV = FV_present + FV_contributions
+        return total_FV - future_value
+    
+    # Initial guess based on simple approximation
+    initial_guess = (future_value / present_value) ** (1/years) - 1
+    
+    try:
+        result = fsolve(equation, initial_guess)[0]
+        return result
+    except:
+        # Fallback to simplified formula if solver fails
+        if contribution_growth == 0:
+            FV_annuity = contributions * years
+        else:
+            FV_annuity = contributions * ((1 + contribution_growth) ** years) / contribution_growth
+        
+        ratio = (future_value - FV_annuity) / present_value
+        if ratio > 0:
+            return ratio ** (1/years) - 1
+        else:
+            return 0.0  # Goal already met by contributions alone
 
 def recovery_return(allocation_to_stocks, allocation_to_bonds, allocation_to_cash, recovery_percentile=0.65):
     """Calculate the expected recovery return at a given percentile"""
