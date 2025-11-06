@@ -1,5 +1,10 @@
 streamlit
 pandas
-plotly
 numpy
 scipy
+plotly
+matplotlib
+seaborn
+openpyxl
+xlrd
+reportlab
